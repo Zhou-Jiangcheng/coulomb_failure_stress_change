@@ -16,7 +16,7 @@ Wang, Rongjiang. (1999). A simple orthonormalization method for stable and effic
 pip install numpy scipy pandas matplotlib obspy
 ```
 
-Install `pygrnwang`. [https://github.com/Zhou-Jiangcheng/pygrnwang](https://github.com/Zhou-Jiangcheng/coulomb_failure_stress_change/blob/main)
+Install `pygrnwang`. https://github.com/Zhou-Jiangcheng/pygrnwang
 
 2. Compile the corresponding Fortran source files.
 3. Copy the exec files to `output` folder.
