@@ -13,7 +13,7 @@ Wang, Rongjiang. (1999). A simple orthonormalization method for stable and effic
 1. Install the requirments. (Python 3.11)
 
 ```
-pip install numpy scipy pandas matplotlib obspy
+pip install numpy scipy pandas matplotlib
 ```
 
 Install `pygrnwang`. https://github.com/Zhou-Jiangcheng/pygrnwang

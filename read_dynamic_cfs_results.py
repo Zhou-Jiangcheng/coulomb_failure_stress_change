@@ -65,19 +65,4 @@ def read_stress_results(path_output, path_obs_faults, inds_obs):
 
 
 if __name__ == "__main__":
-    path_output_ = "/home/zjc/seis_data/Turkey1/qssp_cfs/cfs_S12_S5_d10/"
-    inds_obs_ = [4]
-
-    # path_output_ = "/home/zjc/seis_data/Turkey1/qssp_cfs/cfs_S12_S678_d10_h/"
-    # inds_obs_=[5, 6, 7]
-    #
-    # path_output_ = "/home/zjc/seis_data/Turkey1/qssp_cfs/cfs_S127_S68_d10_h/"
-    # inds_obs_ = [5, 7]
-
-    # path_output_ = "/home/zjc/seis_data/Turkey1/qssp_cfs/cfs_S1278_S9_d10_h/"
-    # inds_obs_ = [8]
-
-    path_obs_faults_ = "/home/zjc/seis_data/Turkey1/rup_model_xyy/"
-    read_stress_results(
-        path_output=path_output_, path_obs_faults=path_obs_faults_, inds_obs=inds_obs_
-    )
+    pass
