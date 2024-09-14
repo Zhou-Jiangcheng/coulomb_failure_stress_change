@@ -11,13 +11,30 @@ from pygrnwang.focal_mechanism import plane2nd
 from pygrnwang.others import cal_max_dist_from_2d_points
 
 
+def convert_earth_model_nd2edgrn_inp(
+    path_nd
+):
+    with open(path_nd, "r") as fr:
+        lines = fr.readlines()
+    lines_new = []
+    for i in range(len(lines)):
+        temp = lines[i].split()
+        if len(temp) > 1:
+            for j in range(4):
+                temp[j] = "%.1f" % (float(temp[j])*1000)
+            lines_new.append(temp[:4])
+    for i in range(len(lines_new)):
+        # print(lines_new[i])
+        lines_new[i] = "  ".join([str(i + 1)] + lines_new[i]) + "\n"
+    return lines_new
+
+
 def cal_source_inp(
         path_faults_sources,
         source_plane_inds,
         source_ref,
         sub_len,
-        num_dip,
-        path_edcmp,
+        path_output,
         time_cut=None,
 ):
     """
@@ -26,8 +43,7 @@ def cal_source_inp(
     :param source_plane_inds:
     :param source_ref: [deg,deg,m]
     :param sub_len: m
-    :param num_dip:
-    :param path_edcmp:
+    :param path_output:
     :param time_cut: [time, srate] [s,Hz]
     :return:
     """
@@ -75,10 +91,7 @@ def cal_source_inp(
         )
         sub_faults[:, 2] = sub_faults[:, 2] + source_ref[2]
         sub_faults[sub_faults[:, 2] <= 0, 2] = 0
-        # print(sub_faults)
-        # mu_strike = sub_faults[num_dip] - sub_faults[0]
-        # mu_dip = sub_faults[1] - sub_faults[0]
-        # sub_faults = sub_faults - mu_strike / 2 - mu_dip / 2
+
         refs_list.append(sub_faults)
 
         sub_fms = np.load(
@@ -100,7 +113,7 @@ def cal_source_inp(
         sources[ind_start:ind_end, 7:] = fms_list[i]
     sources[:, 0] = np.arange(1, num_sources + 1)
     # print(sources)
-    np.save(os.path.join(path_edcmp, "sources.npy"), sources)
+    np.save(os.path.join(path_output, "sources.npy"), sources)
     return sources
 
 
@@ -108,7 +121,7 @@ def cal_obs_inp(
         path_faults_obs,
         obs_ref,
         sub_len,
-        path_edcmp,
+        path_output,
         lat_range=None,
         lon_range=None,
 ):
@@ -137,14 +150,14 @@ def cal_obs_inp(
             [ny, y_start, y_end],
         ]
     )
-    np.save(os.path.join(path_edcmp, "obs.npy"), obs)
+    np.save(os.path.join(path_output, "obs.npy"), obs)
     return obs
 
 
-def cal_grn_inp(path_edcmp, sub_len, rmax=None):
+def cal_grn_inp(path_output, sub_len, rmax=None):
     if rmax is None:
-        sources = np.load(os.path.join(path_edcmp, "sources.npy"))
-        obs = np.load(os.path.join(path_edcmp, "obs.npy"))
+        sources = np.load(os.path.join(path_output, "sources.npy"))
+        obs = np.load(os.path.join(path_output, "obs.npy"))
         x_obs = np.linspace(obs[0, 1], obs[0, 2], round(obs[0, 0]))
         y_obs = np.linspace(obs[1, 1], obs[1, 2], round(obs[1, 0]))
         X_obs, Y_obs = np.meshgrid(x_obs, y_obs)
@@ -157,18 +170,25 @@ def cal_grn_inp(path_edcmp, sub_len, rmax=None):
     rmin = 0
 
     sources_grn = np.array([nr, rmin, rmax])
-    np.save(os.path.join(path_edcmp, "sources_grn.npy"), sources_grn)
+    np.save(os.path.join(path_output, "sources_grn.npy"), sources_grn)
     return sources_grn
 
 
 def create_edgrn_inp(
         obs_dep,
-        path_edcmp,
+        path_output,
         source_dep_list,
+        path_nd=None,
+        earth_model_layer_num=None,
 ):
-    sources_grn = np.load(os.path.join(path_edcmp, "sources_grn.npy"))
-    with open(os.path.join(path_edcmp, "edgrn", "edgrn.inp"), "r") as fr:
-        lines = fr.readlines()
+    sources_grn = np.load(os.path.join(path_output, "sources_grn.npy"))
+    path_edgrn_inp_output = os.path.join(path_output, "edgrn", "edgrn.inp")
+    if os.path.exists(path_edgrn_inp_output):
+        with open(path_edgrn_inp_output, "r") as fr:
+            lines = fr.readlines()
+    else:
+        from coulomb_failure_stress_change.edgrn_inp import s
+        lines = s
     lines_new = lines.copy()
     lines_new[39] = "%.1f\n" % obs_dep
     lines_new[40] = "%d %f %f\n" % (
@@ -183,27 +203,24 @@ def create_edgrn_inp(
         obs_dep,
         obs_dep,
     )
-    with open(os.path.join(path_edcmp, "edgrn", "edgrn_%.1f.inp" % obs_dep), "w") as fw:
+    if path_nd is not None:
+        lines_earth = convert_earth_model_nd2edgrn_inp(
+            path_nd=path_nd
+        )
+    if earth_model_layer_num is None:
+        lines_earth = lines_earth[:earth_model_layer_num]
+    else:
+        earth_model_layer_num = len(lines_earth)
+    lines_new[-(earth_model_layer_num+1):-1] = lines_earth
+
+    with open(os.path.join(path_output, "edgrn", "edgrn_%.1f.inp" % obs_dep), "w") as fw:
         fw.writelines(lines_new)
-
-
-def call_edgrn(obs_dep, path_edcmp):
-    # print(obs_dep)
-    os.chdir(os.path.join(path_edcmp, "edgrn"))
-    path_inp = str(os.path.join(
-        path_edcmp, "edgrn", "edgrn_%.1f.inp" % obs_dep))
-    edcmp_process = subprocess.Popen(
-        [os.path.join(path_edcmp, "edgrn2.0")],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-    )
-    edcmp_process.communicate(str.encode(path_inp))
 
 
 def create_edcmp_inp(
         obs_dep,
         hs_flag,
-        path_edcmp,
+        path_output,
         lam=3e10,
         mu=3e10,
 ):
@@ -211,13 +228,13 @@ def create_edcmp_inp(
 
     :param obs_dep: m
     :param hs_flag: 0/1
-    :param path_edcmp
+    :param path_output
     :param lam: N/M^2
     :param mu: N/M^2
     :return:
     """
-    sources = np.load(os.path.join(path_edcmp, "sources.npy"))
-    obs = np.load(os.path.join(path_edcmp, "obs.npy"))
+    sources = np.load(os.path.join(path_output, "sources.npy"))
+    obs = np.load(os.path.join(path_output, "obs.npy"))
     sources_str = ""
     for i in range(len(sources)):
         sources_str += "%d %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f\n" % (
@@ -232,9 +249,13 @@ def create_edcmp_inp(
             sources[i, 8],
             sources[i, 9],
         )
-
-    with open(os.path.join(path_edcmp, "edcmp", "edcmp.inp"), "r") as fr:
-        lines = fr.readlines()
+    path_output_inp_output = os.path.join(path_output, "edcmp", "edcmp.inp")
+    if os.path.exists(path_output_inp_output):
+        with open(path_output_inp_output, "r") as fr:
+            lines = fr.readlines()
+    else:
+        from coulomb_failure_stress_change.edcmp_inp import s
+        lines = s
     lines_new = lines.copy()
     lines_new[54] = "%d %f %f\n" % (obs[0, 0], obs[0, 1], obs[0, 2])
     lines_new[55] = "%d %f %f\n" % (obs[1, 0], obs[1, 1], obs[1, 2])
@@ -257,17 +278,52 @@ def create_edcmp_inp(
         )
     else:
         raise ValueError("hs_flag wrong")
-    with open(os.path.join(path_edcmp, "edcmp", "edcmp_%.1f.inp" % obs_dep), "w") as fw:
+    with open(os.path.join(path_output, "edcmp", "edcmp_%.1f.inp" % obs_dep), "w") as fw:
         fw.writelines(lines_new)
 
 
-def call_edcmp(obs_dep, path_edcmp):
+def prepare_cfs_static(
+        processes_num,
+        path_output,
+        path_faults_sources,
+        source_plane_inds,
+        source_ref,
+        sub_length_source,
+        source_dep_list,
+        path_faults_obs,
+        obs_plane_inds,
+        obs_ref,
+        sub_length_obs,
+        obs_dep_list,
+        hs_flag,
+        path_nd=None,
+        earth_model_layer_num=None,
+        lam=None,
+        mu=None,
+):
+    pass
+
+
+def call_edgrn(obs_dep, path_output):
     # print(obs_dep)
-    os.chdir(os.path.join(path_edcmp, "edcmp"))
+    os.chdir(os.path.join(path_output, "edgrn"))
     path_inp = str(os.path.join(
-        path_edcmp, "edcmp", "edcmp_%.1f.inp" % obs_dep))
+        path_output, "edgrn", "edgrn_%.1f.inp" % obs_dep))
     edcmp_process = subprocess.Popen(
-        [os.path.join(path_edcmp, "edcmp2.0")],
+        [os.path.join(path_output, "edgrn2.0")],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
+    edcmp_process.communicate(str.encode(path_inp))
+
+
+def call_edcmp(obs_dep, path_output):
+    # print(obs_dep)
+    os.chdir(os.path.join(path_output, "edcmp"))
+    path_inp = str(os.path.join(
+        path_output, "edcmp", "edcmp_%.1f.inp" % obs_dep))
+    edcmp_process = subprocess.Popen(
+        [os.path.join(path_output, "edcmp2.0")],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
     )
@@ -278,12 +334,12 @@ def _call_edgrn(args):
     call_edgrn(*args)
 
 
-def call_edgrn_parallel_single_node(obs_dep_list, path_edcmp, processes):
+def call_edgrn_parallel_single_node(obs_dep_list, path_output, processes_num):
     print("call edgrn")
     input_list = []
     for i in range(len(obs_dep_list)):
-        input_list.append([obs_dep_list[i], path_edcmp])
-    with mp.Pool(processes=processes) as pool:
+        input_list.append([obs_dep_list[i], path_output])
+    with mp.Pool(processes=processes_num) as pool:
         list(tqdm(pool.imap(_call_edgrn, input_list), total=len(input_list)))
 
 
@@ -291,34 +347,35 @@ def _call_edcmp(args):
     call_edcmp(*args)
 
 
-def call_edcmp_parallel_single_node(obs_dep_list, path_edcmp, processes):
+def call_edcmp_parallel_single_node(obs_dep_list, path_output, processes_num):
     print("call edcmp")
     input_list = []
     for i in range(len(obs_dep_list)):
-        input_list.append([obs_dep_list[i], path_edcmp])
-    with mp.Pool(processes=processes) as pool:
+        input_list.append([obs_dep_list[i], path_output])
+    with mp.Pool(processes=processes_num) as pool:
         list(tqdm(pool.imap(_call_edcmp, input_list), total=len(input_list)))
 
 
-def read_stress(path_edcmp, dep_list):
-    obs = np.load(os.path.join(path_edcmp, "obs.npy"))
+def read_stress(path_output, dep_list):
+    obs = np.load(os.path.join(path_output, "obs.npy"))
     print(obs)
     stress_all = np.zeros((round(obs[0, 0] * obs[1, 0]), 8, len(dep_list)))
     for i in range(len(dep_list)):
         # X_m Y_m Sxx_Pa Syy_Pa Szz_Pa Sxy_Pa Syz_Pa Szx_Pa
         df = pd.read_csv(
-            str(os.path.join(path_edcmp, "edcmp", "%.1f.strss" % dep_list[i])),
+            str(os.path.join(path_output, "edcmp",
+                "%.1f.strss" % dep_list[i])),
             skiprows=3,
             sep="\\s+",
             header=None,
         )
         stress_all[:, :, i] = df.to_numpy()
-    np.save(os.path.join(path_edcmp, "stress_all.npy"), stress_all)
+    np.save(os.path.join(path_output, "stress_all.npy"), stress_all)
     return stress_all
 
 
 def project_to_obs_faults(
-        path_edcmp,
+        path_output,
         path_faults_obs,
         obs_plane_inds,
         obs_ref,
@@ -337,8 +394,8 @@ def project_to_obs_faults(
         ind = round(np.argmin(np.abs(z_in - dep_list)))
         return ind
 
-    obs = np.load(os.path.join(path_edcmp, "obs.npy"))
-    stress_all = np.load(os.path.join(path_edcmp, "stress_all.npy"))
+    obs = np.load(os.path.join(path_output, "obs.npy"))
+    stress_all = np.load(os.path.join(path_output, "stress_all.npy"))
 
     for i in obs_plane_inds:
         sub_faults = np.load(
@@ -357,7 +414,6 @@ def project_to_obs_faults(
         sub_norm_stress = np.zeros(len(sub_faults))
         sub_shear_stress = np.zeros(len(sub_faults))
         sub_mean_stress = np.zeros(len(sub_faults))
-        # sub_faults = sub_faults.reshape(num_dip, -1)
         for j in range(len(sub_faults)):
             x, y, z = sub_faults[j, :].tolist()
             n, d = plane2nd(*sub_fms[j, :])
@@ -391,19 +447,20 @@ def project_to_obs_faults(
             sub_shear_stress[j] = tau
             sub_mean_stress[j] = mean_stress
         np.save(
-            str(os.path.join(path_edcmp, "norm_stress_%d.npy" % i)), sub_norm_stress
+            str(os.path.join(path_output, "norm_stress_%d.npy" % i)), sub_norm_stress
         )
         np.save(
-            str(os.path.join(path_edcmp, "shear_stress_%d.npy" % i)), sub_shear_stress
+            str(os.path.join(path_output, "shear_stress_%d.npy" % i)), sub_shear_stress
         )
         np.save(
-            str(os.path.join(path_edcmp, "mean_stress_%d.npy" % i)), sub_mean_stress
+            str(os.path.join(path_output, "mean_stress_%d.npy" % i)), sub_mean_stress
         )
-        np.save(str(os.path.join(path_edcmp, "sub_faults_plane%d.npy" % i)), sub_faults)
+        np.save(
+            str(os.path.join(path_output, "sub_faults_plane%d.npy" % i)), sub_faults)
 
 
 def cal_coulomb_stress_one_dep(
-        path_edcmp,
+        path_output,
         strike,
         dip,
         rake,
@@ -411,7 +468,7 @@ def cal_coulomb_stress_one_dep(
         obs_dep_list,
         mu=0.4,
 ):
-    stress_all = np.load(os.path.join(path_edcmp, "stress_all.npy"))
+    stress_all = np.load(os.path.join(path_output, "stress_all.npy"))
     ind = round(np.argmin(np.abs(obs_dep - np.array(obs_dep_list))))
     n, d = plane2nd(strike=strike, dip=dip, rake=rake)
     n = n.flatten()
@@ -453,16 +510,16 @@ def cal_coulomb_stress_one_dep(
     )
 
     np.save(
-        str(os.path.join(path_edcmp, "sigma_vectors_dep%.1f" %
+        str(os.path.join(path_output, "sigma_vectors_dep%.1f" %
             obs_dep_list[ind])),
         sigma_vectors,
     )
-    np.save(str(os.path.join(path_edcmp, "sigmas_dep%.1f" %
+    np.save(str(os.path.join(path_output, "sigmas_dep%.1f" %
             obs_dep_list[ind])), sigmas)
-    np.save(str(os.path.join(path_edcmp, "taus_dep%.1f" %
+    np.save(str(os.path.join(path_output, "taus_dep%.1f" %
             obs_dep_list[ind])), taus)
     np.save(
-        str(os.path.join(path_edcmp, "coulomb_stress_dep%.1f" %
+        str(os.path.join(path_output, "coulomb_stress_dep%.1f" %
             obs_dep_list[ind])),
         coulomb_stress,
     )
@@ -505,17 +562,17 @@ def cal_coulomb_stress_poroelasticity(
     return coulomb_stress
 
 
-def cal_all_coulomb_stress(path_edcmp, obs_plane_inds, mu=0.4):
+def cal_all_coulomb_stress(path_output, obs_plane_inds, mu=0.4):
     coulomb_max = 0
     for i in obs_plane_inds:
         print(i)
         norm_stress = np.load(os.path.join(
-            path_edcmp, "norm_stress_%d.npy" % i))
+            path_output, "norm_stress_%d.npy" % i))
         shear_stress = np.load(os.path.join(
-            path_edcmp, "shear_stress_%d.npy" % i))
+            path_output, "shear_stress_%d.npy" % i))
         coulomb_stress = cal_coulomb_stress(norm_stress, shear_stress, mu=mu)
         np.save(
-            str(os.path.join(path_edcmp, "coulomb_stress_%d.npy" % i)), coulomb_stress
+            str(os.path.join(path_output, "coulomb_stress_%d.npy" % i)), coulomb_stress
         )
         # print(coulomb_stress)
         if coulomb_max < np.max(np.abs(coulomb_stress)):
@@ -523,21 +580,21 @@ def cal_all_coulomb_stress(path_edcmp, obs_plane_inds, mu=0.4):
     print(coulomb_max)
 
 
-def cal_all_coulomb_stress_poroelasticity(path_edcmp, obs_plane_inds, mu=0.6, B=0.75):
+def cal_all_coulomb_stress_poroelasticity(path_output, obs_plane_inds, mu=0.6, B=0.75):
     coulomb_max = 0
     for i in obs_plane_inds:
         print(i)
         norm_stress = np.load(os.path.join(
-            path_edcmp, "norm_stress_%d.npy" % i))
+            path_output, "norm_stress_%d.npy" % i))
         shear_stress = np.load(os.path.join(
-            path_edcmp, "shear_stress_%d.npy" % i))
+            path_output, "shear_stress_%d.npy" % i))
         mean_stress = np.load(os.path.join(
-            path_edcmp, "mean_stress_%d.npy" % i))
+            path_output, "mean_stress_%d.npy" % i))
         coulomb_stress = cal_coulomb_stress_poroelasticity(
             norm_stress, shear_stress, mean_stress, mu=mu, B=B
         )
         np.save(
-            str(os.path.join(path_edcmp, "coulomb_stress_poroelasticity_%d.npy" % i)),
+            str(os.path.join(path_output, "coulomb_stress_poroelasticity_%d.npy" % i)),
             coulomb_stress,
         )
         # print(coulomb_stress)

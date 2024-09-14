@@ -1,4 +1,4 @@
-#===============================================================================
+s = """#===============================================================================
 # This is the input file of FORTRAN77 program "edcomp" for calculating
 # earthquakes' static deformations (3 displacement components, 6 strain/stress
 # components and 2 vertical tilt components) based on the dislocation theory.
@@ -138,4 +138,4 @@
 #  '../edgrnfcts_bam/'  'edgrnhs.ss'  'edgrnhs.ds'  'edgrnhs.cl'
   0
   0.00d+00  30516224000  33701888000
-#================================end of input===================================
+#================================end of input==================================="""
