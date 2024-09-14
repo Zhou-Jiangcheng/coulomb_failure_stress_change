@@ -1,14 +1,14 @@
 import os
 import subprocess
 import multiprocessing as mp
-from tqdm import tqdm
 
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
-from geo import convert_sub_faults_geo2ned
-from focal_mechanism import plane2nd
-from others import cal_max_dist_from_2d_points
+from pygrnwang.geo import convert_sub_faults_geo2ned
+from pygrnwang.focal_mechanism import plane2nd
+from pygrnwang.others import cal_max_dist_from_2d_points
 
 
 def cal_source_inp(

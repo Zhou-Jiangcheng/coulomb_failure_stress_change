@@ -14,7 +14,7 @@ Wang, Rongjiang. (1999). A simple orthonormalization method for stable and effic
 
 ```
 sudo apt install gfortran
-conda install numpy scipy pandas mpi4py -c conda-forge
+conda install numpy scipy pandas mpi4py tqdm -c conda-forge
 ```
 
 Install `pygrnwang`. https://github.com/Zhou-Jiangcheng/pygrnwang

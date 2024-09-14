@@ -6,9 +6,9 @@ from mpi4py import MPI
 
 from pygrnwang.read_qssp import read_stress_tensor
 from pygrnwang.utils import group
-from focal_mechanism import plane2nd, plane2mt
-from signal_process import resample
-from coulomb_stress_static import (
+from pygrnwang.focal_mechanism import plane2nd, plane2mt
+from pygrnwang.signal_process import resample
+from coulomb_failure_stress_change.coulomb_stress_static import (
     cal_coulomb_stress,
     cal_coulomb_stress_poroelasticity,
 )

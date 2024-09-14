@@ -3,16 +3,6 @@ import glob
 import pickle
 
 import numpy as np
-import matplotlib.pyplot as plt
-
-plt.rcParams.update(
-    {
-        "font.size": 10,
-        "font.family": "Arial",
-        "xtick.direction": "in",
-        "ytick.direction": "in",
-    }
-)
 
 
 def find_pkl(lat, lon, dep, pkl_list):
