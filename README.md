@@ -10,10 +10,11 @@ Wang, Rongjiang. (1999). A simple orthonormalization method for stable and effic
 
 # Installation
 
-1. Install the requirments. (Python 3.11)
+1. Install the requirments. (Debian 12, Python 3.11)
 
 ```
-pip install numpy scipy pandas matplotlib
+sudo apt install gfortran
+conda install numpy scipy pandas mpi4py -c conda-forge
 ```
 
 Install `pygrnwang`. https://github.com/Zhou-Jiangcheng/pygrnwang
