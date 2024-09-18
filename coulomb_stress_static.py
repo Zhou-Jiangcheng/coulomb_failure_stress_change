@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import multiprocessing as mp
 
@@ -9,6 +10,8 @@ import pandas as pd
 from pygrnwang.geo import convert_sub_faults_geo2ned
 from pygrnwang.focal_mechanism import plane2nd
 from pygrnwang.others import cal_max_dist_from_2d_points
+
+d2m = 111194.92664455874
 
 
 def convert_earth_model_nd2edgrn_inp(path_nd):
@@ -130,7 +133,6 @@ def cal_obs_inp(
         y_start = np.min(np.floor(sub_faults[:, 1]))
         y_end = np.max(np.ceil(sub_faults[:, 1]))
     else:
-        d2m = 111194.92664455874
         x_start = (lat_range[0] - obs_ref[0]) * d2m
         x_end = (lat_range[1] - obs_ref[0]) * d2m
         y_start = (lon_range[0] - obs_ref[1]) * d2m
@@ -281,6 +283,8 @@ def create_edcmp_inp(
 
 def prepare_cfs_static(
     path_output,
+    path_bin_edgrn,
+    path_bin_edcmp,
     path_faults_sources,
     source_plane_inds,
     sub_length_source,
@@ -290,6 +294,7 @@ def prepare_cfs_static(
     obs_dep_list,
     lat_range,
     lon_range,
+    rmax_grn,
     ref_point,
     hs_flag,
     path_nd=None,
@@ -297,14 +302,19 @@ def prepare_cfs_static(
     lam=None,
     mu=None,
 ):
-    sources = cal_source_inp(
+    os.makedirs(path_output, exist_ok=True)
+    os.makedirs(os.path.join(path_output, "edgrn"), exist_ok=True)
+    os.makedirs(os.path.join(path_output, "edcmp"), exist_ok=True)
+    shutil.copy(path_bin_edgrn, os.path.join(path_output, "edgrn"))
+    shutil.copy(path_bin_edcmp, os.path.join(path_output, "edcmp"))
+    cal_source_inp(
         path_faults_sources=path_faults_sources,
         source_plane_inds=source_plane_inds,
         source_ref=ref_point,
         sub_len=sub_length_source,
         path_output=path_output,
     )
-    obs = cal_obs_inp(
+    cal_obs_inp(
         path_faults_obs=path_faults_obs,
         obs_ref=ref_point,
         sub_len=sub_length_obs,
@@ -312,10 +322,10 @@ def prepare_cfs_static(
         lat_range=lat_range,
         lon_range=lon_range,
     )
-    source_grn = cal_grn_inp(
+    cal_grn_inp(
         path_output=path_output,
         sub_len=sub_length_source,
-        rmax=300e3,
+        rmax=rmax_grn,
     )
 
     for dep in obs_dep_list:
