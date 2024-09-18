@@ -48,10 +48,14 @@ def read_stress_results(path_output, path_obs_faults, inds_obs):
         normal_stress_plane = np.array(normal_stress_plane)
         shear_stress_plane = np.array(shear_stress_plane)
         np.save(str(os.path.join(path_output, "cfs_plane_exp%d.npy" % ind)), cfs_plane)
-        np.save(str(os.path.join(path_output,
-                "normal_stress_plane_exp%d.npy" % ind)), normal_stress_plane)
-        np.save(str(os.path.join(path_output,
-                "shear_stress_plane_exp%d.npy" % ind)), shear_stress_plane)
+        np.save(
+            str(os.path.join(path_output, "normal_stress_plane_exp%d.npy" % ind)),
+            normal_stress_plane,
+        )
+        np.save(
+            str(os.path.join(path_output, "shear_stress_plane_exp%d.npy" % ind)),
+            shear_stress_plane,
+        )
 
 
 if __name__ == "__main__":

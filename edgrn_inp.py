@@ -1,4 +1,4 @@
-s="""#=============================================================================
+s = """#=============================================================================
 # This is the input file of FORTRAN77 program "edgrn" for calculating
 # the Green's functions of a layered elastic half-space earth model. All
 # results will be stored in the given directory and provide the necessary

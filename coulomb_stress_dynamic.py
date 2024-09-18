@@ -39,23 +39,23 @@ def cal_stress_vector_ned(stress_enz, n):
 
 
 def cal_coulomb_stress_single_point(
-        path_green,
-        path_faults,
-        source_inds,
-        field_point,
-        points_green_geo,
-        event_dep_list,
-        receiver_dep_list,
-        srate_stf,
-        srate_cfs,
-        N_T,
-        time_reduction,
-        n_obs,
-        d_obs,
-        mu=0.4,
-        mu_pore=0.6,
-        B_pore=0.75,
-        interp=False,
+    path_green,
+    path_faults,
+    source_inds,
+    field_point,
+    points_green_geo,
+    event_dep_list,
+    receiver_dep_list,
+    srate_stf,
+    srate_cfs,
+    N_T,
+    time_reduction,
+    n_obs,
+    d_obs,
+    mu=0.4,
+    mu_pore=0.6,
+    B_pore=0.75,
+    interp=False,
 ):
     receiver_depth = find_nearest_dep(field_point[2], receiver_dep_list)
 
@@ -67,17 +67,13 @@ def cal_coulomb_stress_single_point(
         sub_faults_source = np.load(
             os.path.join(path_faults, "sub_faults_plane%d.npy" % ind)
         )
-        sub_fms = np.load(os.path.join(
-            path_faults, "sub_fms_plane%d.npy" % ind))
-        sub_stfs = np.load(os.path.join(
-            path_faults, "sub_stfs_plane%d.npy" % ind))
-        sub_m0s = np.load(os.path.join(
-            path_faults, "sub_m0s_plane%d.npy" % ind))
+        sub_fms = np.load(os.path.join(path_faults, "sub_fms_plane%d.npy" % ind))
+        sub_stfs = np.load(os.path.join(path_faults, "sub_stfs_plane%d.npy" % ind))
+        sub_m0s = np.load(os.path.join(path_faults, "sub_m0s_plane%d.npy" % ind))
         # sub_slips = np.load(os.path.join(path_faults, "sub_slips_plane%d.npy" % ind))
 
         for i in range(sub_faults_source.shape[0]):
-            event_depth = find_nearest_dep(
-                sub_faults_source[i][2], event_dep_list)
+            event_depth = find_nearest_dep(sub_faults_source[i][2], event_dep_list)
             stress_enz_1source = read_stress_tensor(
                 path_green=path_green,
                 event_depth=event_depth,
@@ -98,7 +94,8 @@ def cal_coulomb_stress_single_point(
                 )
                 sub_stf = sub_stf / (np.sum(sub_stf) / srate_cfs) * sub_m0s[i]
                 sigma_temp = stress_enz_1source[
-                    round(time_reduction * srate_cfs):, i_enz]
+                    round(time_reduction * srate_cfs) :, i_enz
+                ]
                 sigma_temp = sigma_temp - sigma_temp[0]
 
                 # sigma_temp[0] = 0
@@ -108,16 +105,16 @@ def cal_coulomb_stress_single_point(
                 stress_enz_1source[:, i_enz] = (
                     np.convolve(sub_stf, sigma_temp)[:N_T] / srate_cfs
                 )
-                point_sta = np.array(
-                    field_point[:2]) - np.array(sub_faults_source[i][:2])
-                dist = np.sqrt(point_sta[0] ** 2 +
-                               point_sta[1] ** 2) * d2m / 1e3
+                point_sta = np.array(field_point[:2]) - np.array(
+                    sub_faults_source[i][:2]
+                )
+                dist = np.sqrt(point_sta[0] ** 2 + point_sta[1] ** 2) * d2m / 1e3
                 t_cut_slowness = dist * 0.4  # max slowness
-                ind_const = round((t_cut_slowness + 1) *
-                                  srate_cfs + len(sub_stf))
+                ind_const = round((t_cut_slowness + 1) * srate_cfs + len(sub_stf))
                 if ind_const < N_T:
-                    stress_enz_1source[ind_const:,
-                                       i_enz] = stress_enz_1source[ind_const, i_enz]
+                    stress_enz_1source[ind_const:, i_enz] = stress_enz_1source[
+                        ind_const, i_enz
+                    ]
             stress_enz = stress_enz + stress_enz_1source
 
     n = np.array([n_obs.flatten()]).T
@@ -149,24 +146,24 @@ def cal_coulomb_stress_single_point(
 
 
 def prepare_multi_points(
-        path_output,
-        processes_num,
-        path_green,
-        path_faults_source,
-        source_inds,
-        field_points,
-        field_fms,
-        points_green_geo,
-        event_dep_list,
-        receiver_dep_list,
-        srate_stf,
-        srate_cfs,
-        N_T,
-        time_reduction,
-        mu=0.4,
-        mu_pore=0.6,
-        B_pore=0.75,
-        interp=False,
+    path_output,
+    processes_num,
+    path_green,
+    path_faults_source,
+    source_inds,
+    field_points,
+    field_fms,
+    points_green_geo,
+    event_dep_list,
+    receiver_dep_list,
+    srate_stf,
+    srate_cfs,
+    N_T,
+    time_reduction,
+    mu=0.4,
+    mu_pore=0.6,
+    B_pore=0.75,
+    interp=False,
 ):
     N_points = len(field_points)
     paras_list = []
@@ -199,7 +196,7 @@ def prepare_multi_points(
 
 
 def cal_coulomb_stress_multi_points_mpi(
-        path_output,
+    path_output,
 ):
     with open(os.path.join(path_output, "group_list.pkl"), "rb") as fr:
         group_list = pickle.load(fr)
@@ -213,20 +210,19 @@ def cal_coulomb_stress_multi_points_mpi(
         if processes_num < len(group_list[0]):
             raise ValueError(
                 "processes_num is %d, item num in group is %d. \n"
-                "Pleasse check the process num!" % (
-                    processes_num, len(group_list[0]))
+                "Pleasse check the process num!" % (processes_num, len(group_list[0]))
             )
         print("ind_group:%d rank:%d" % (ind_group, rank))
         if ind_group * len(group_list[0]) + rank < N_all:
             paras = group_list[ind_group][rank]
             cfs_data = cal_coulomb_stress_single_point(*paras)
             with open(
-                    os.path.join(
-                        path_output,
-                        "%d_%d_%f_%f_%f.pkl"
-                        % (ind_group, rank, paras[3][0], paras[3][1], paras[3][2]),
-                    ),
-                    "wb",
+                os.path.join(
+                    path_output,
+                    "%d_%d_%f_%f_%f.pkl"
+                    % (ind_group, rank, paras[3][0], paras[3][1], paras[3][2]),
+                ),
+                "wb",
             ) as fw:
                 pickle.dump(cfs_data, fw)
 
