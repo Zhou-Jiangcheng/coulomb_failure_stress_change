@@ -1,6 +1,6 @@
 # Introduction
 
-This Python package serves as the frontend for building Green's function libraries for static and dynamic stress, and for calculating Coulomb failure stress. The backend uses Wang Rongjiang's stress calculation programs, including EDGRN/EDCMP and QSSP (Wang, 1999; Wang, 2003; Wang et al., 2017). The code for building the static stress Green's function library includes two parallel modes: one using the `multiprocessing` library (single-node multi-process) and the other using MPI (multi-node). The code for building the dynamic stress Green's function library uses the MPI (multi-node) parallel mode.
+This Python package serves as the frontend for building Green's function libraries for static and dynamic stress, and for calculating Coulomb failure stress. The backend uses Wang Rongjiang's stress calculation programs, including EDGRN/EDCMP and QSSP (Wang, 1999; Wang, 2003; Wang et al., 2017). The code for building the static stress Green's function library uses the `multiprocessing` library (single-node multi-process). The code for building the dynamic stress Green's function library uses the MPI (multi-node) parallel mode.
 
 Wang, Rongjiang. (1999). A simple orthonormalization method for stable and efficient computation of Green’s functions.  *Bulletin of the Seismological Society of America* ,  *89* (3), 733–741. [https://doi.org/10.1785/BSSA0890030733](https://doi.org/10.1785/BSSA0890030733)
 
