@@ -146,8 +146,8 @@ def cal_coulomb_stress_single_point(
 
 
 def prepare_multi_points(
-    path_output,
     processes_num,
+    path_output,
     path_green,
     path_faults_source,
     source_inds,
