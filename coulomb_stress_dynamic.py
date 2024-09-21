@@ -160,8 +160,8 @@ def prepare_multi_points(
     srate_cfs,
     N_T,
     time_reduction,
-    mu=0.4,
-    mu_pore=0.6,
+    mu_f=0.4,
+    mu_f_pore=0.6,
     B_pore=0.75,
     interp=False,
 ):
@@ -184,8 +184,8 @@ def prepare_multi_points(
                 time_reduction,
                 n_obs,
                 d_obs,
-                mu,
-                mu_pore,
+                mu_f,
+                mu_f_pore,
                 B_pore,
                 interp,
             ]
