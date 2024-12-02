@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 import subprocess
 import multiprocessing as mp
@@ -400,25 +401,48 @@ def call_edgrn(obs_dep, path_output):
     # print(obs_dep)
     os.chdir(os.path.join(path_output, "edgrn"))
     path_inp = str(os.path.join(path_output, "edgrn", "edgrn_%.1f.inp" % obs_dep))
-    edcmp_process = subprocess.Popen(
-        [os.path.join(path_output, "edgrn2.0")],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-    )
-    edcmp_process.communicate(str.encode(path_inp))
-
+    if platform.system() == "Windows":
+        edgrn_process = subprocess.Popen(
+            [os.path.join(path_output, "edgrn2.0.exe")],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE)
+        edgrn_process.communicate(str.encode(path_inp))
+    else:
+        try:
+            edgrn_process = subprocess.Popen(
+                [os.path.join(path_output, "edgrn2.0.bin")],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE)
+            edgrn_process.communicate(str.encode(path_inp))
+        except Exception as e:
+            print(e)
+            raise ("this system is not supported yet, \
+                please compile the source code of edgrn2.0, \
+                copy and replace the edgrn2.0.bin file ")
 
 def call_edcmp(obs_dep, path_output):
     # print(obs_dep)
     os.chdir(os.path.join(path_output, "edcmp"))
     path_inp = str(os.path.join(path_output, "edcmp", "edcmp_%.1f.inp" % obs_dep))
-    edcmp_process = subprocess.Popen(
-        [os.path.join(path_output, "edcmp2.0")],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-    )
-    edcmp_process.communicate(str.encode(path_inp))
 
+    if platform.system() == "Windows":
+        edcmp_process = subprocess.Popen(
+            [os.path.join(path_output, "edcmp2.0.exe")],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE)
+        edcmp_process.communicate(str.encode(path_inp))
+    else:
+        try:
+            edcmp_process = subprocess.Popen(
+                [os.path.join(path_output, "edcmp2.0.bin")],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE)
+            edcmp_process.communicate(str.encode(path_inp))
+        except Exception as e:
+            print(e)
+            raise ("this system is not supported yet, \
+                please compile the source code of edcmp2.0, \
+                copy and replace the edcmp2.0.bin file ")
 
 def _call_edgrn(args):
     call_edgrn(*args)
