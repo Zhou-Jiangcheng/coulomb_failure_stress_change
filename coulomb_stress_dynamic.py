@@ -17,6 +17,7 @@ d2m = 111194.92664455874
 
 
 def find_nearest_dep(dep, dep_list):
+    dep_list = np.array(dep_list)
     return dep_list[np.argmin(np.abs(dep - dep_list))]
 
 
@@ -38,7 +39,82 @@ def cal_stress_vector_ned(stress_enz, n):
     return sigma_vector
 
 
-def cal_coulomb_stress_single_point(
+def cal_coulomb_stress_grn_point2point(
+    path_green,
+    sub_fm,
+    source_point,
+    field_point,
+    points_green_geo_flatten,
+    event_dep_list,
+    receiver_dep_list,
+    srate_cfs,
+    time_reduction,
+    N_T,
+    n_obs,
+    d_obs,
+    max_slowness=0.4,
+    mu_f=0.4,
+    mu_f_pore=0.6,
+    B_pore=0.75,
+    interp=False,
+):
+    N_T = int(N_T)
+    stress_enz = np.zeros((N_T, 6))
+    receiver_depth = find_nearest_dep(field_point[2], receiver_dep_list)
+    event_depth = find_nearest_dep(source_point[2], event_dep_list)
+    points_green_geo = points_green_geo_flatten.reshape(2, len(points_green_geo_flatten)//2).T
+
+    stress_enz_1source = read_stress_tensor(
+        path_green=path_green,
+        event_depth=event_depth,
+        receiver_depth=receiver_depth,
+        points_green_geo=points_green_geo,
+        source=source_point,
+        station=field_point,
+        mt=plane2mt(1, *sub_fm),
+        interp=interp,
+    )  # enz
+
+    for i_enz in range(6):
+        stress_enz[: -round(time_reduction * srate_cfs), i_enz] = stress_enz_1source[
+            round(time_reduction * srate_cfs):, i_enz
+        ]
+        point_sta = np.array(field_point[:2]) - np.array(source_point[:2])
+        dist = np.sqrt(point_sta[0] ** 2 + point_sta[1] ** 2) * d2m / 1e3
+        t_cut_slowness = dist * max_slowness  # max slowness
+        ind_const = round((t_cut_slowness + 1) * srate_cfs)
+        if ind_const < N_T:
+            stress_enz[ind_const:, i_enz] = stress_enz[ind_const, i_enz]
+
+    n = np.array([n_obs.flatten()]).T
+    d = np.array([d_obs.flatten()]).T
+    sigma_vector = cal_stress_vector_ned(stress_enz, n)  # ned
+    sigma = np.dot(sigma_vector, np.array([n]).T).flatten()
+    tau = np.dot(sigma_vector, np.array([d]).T).flatten()
+    mean_stress = (stress_enz[:, 0] + stress_enz[:, 3] + stress_enz[:, 5]) / 3
+    coulomb_stress = cal_coulomb_stress(
+        norm_stress_drop=sigma, shear_stress_drop=tau, mu_f=mu_f
+    )
+    coulomb_stress_pore = cal_coulomb_stress_poroelasticity(
+        norm_stress_drop=sigma,
+        shear_stress_drop=tau,
+        mean_stress_drop=mean_stress,
+        mu_f_pore=mu_f_pore,
+        B=B_pore,
+    )
+
+    return (
+        stress_enz,
+        sigma_vector,
+        sigma,
+        tau,
+        mean_stress,
+        coulomb_stress,
+        coulomb_stress_pore,
+    )
+
+
+def cal_coulomb_stress_plane2single_point(
     path_green,
     path_faults,
     source_inds,
@@ -52,14 +128,14 @@ def cal_coulomb_stress_single_point(
     time_reduction,
     n_obs,
     d_obs,
-    mu=0.4,
-    mu_pore=0.6,
+    mu_f=0.4,
+    mu_f_pore=0.6,
     B_pore=0.75,
     interp=False,
 ):
-    receiver_depth = find_nearest_dep(field_point[2], receiver_dep_list)
-
+    N_T = int(N_T)
     stress_enz = np.zeros((N_T, 6))
+    receiver_depth = find_nearest_dep(field_point[2], receiver_dep_list)
 
     for ind in source_inds:
         # print(ind)
@@ -67,13 +143,17 @@ def cal_coulomb_stress_single_point(
         sub_faults_source = np.load(
             os.path.join(path_faults, "sub_faults_plane%d.npy" % ind)
         )
-        sub_fms = np.load(os.path.join(path_faults, "sub_fms_plane%d.npy" % ind))
-        sub_stfs = np.load(os.path.join(path_faults, "sub_stfs_plane%d.npy" % ind))
-        sub_m0s = np.load(os.path.join(path_faults, "sub_m0s_plane%d.npy" % ind))
+        sub_fms = np.load(os.path.join(
+            path_faults, "sub_fms_plane%d.npy" % ind))
+        sub_stfs = np.load(os.path.join(
+            path_faults, "sub_stfs_plane%d.npy" % ind))
+        sub_m0s = np.load(os.path.join(
+            path_faults, "sub_m0s_plane%d.npy" % ind))
         # sub_slips = np.load(os.path.join(path_faults, "sub_slips_plane%d.npy" % ind))
 
         for i in range(sub_faults_source.shape[0]):
-            event_depth = find_nearest_dep(sub_faults_source[i][2], event_dep_list)
+            event_depth = find_nearest_dep(
+                sub_faults_source[i][2], event_dep_list)
             stress_enz_1source = read_stress_tensor(
                 path_green=path_green,
                 event_depth=event_depth,
@@ -94,7 +174,7 @@ def cal_coulomb_stress_single_point(
                 )
                 sub_stf = sub_stf / (np.sum(sub_stf) / srate_cfs) * sub_m0s[i]
                 sigma_temp = stress_enz_1source[
-                    round(time_reduction * srate_cfs) :, i_enz
+                    round(time_reduction * srate_cfs):, i_enz
                 ]
                 sigma_temp = sigma_temp - sigma_temp[0]
 
@@ -108,9 +188,11 @@ def cal_coulomb_stress_single_point(
                 point_sta = np.array(field_point[:2]) - np.array(
                     sub_faults_source[i][:2]
                 )
-                dist = np.sqrt(point_sta[0] ** 2 + point_sta[1] ** 2) * d2m / 1e3
+                dist = np.sqrt(point_sta[0] ** 2 +
+                               point_sta[1] ** 2) * d2m / 1e3
                 t_cut_slowness = dist * 0.4  # max slowness
-                ind_const = round((t_cut_slowness + 1) * srate_cfs + len(sub_stf))
+                ind_const = round((t_cut_slowness + 1) *
+                                  srate_cfs + len(sub_stf))
                 if ind_const < N_T:
                     stress_enz_1source[ind_const:, i_enz] = stress_enz_1source[
                         ind_const, i_enz
@@ -124,13 +206,13 @@ def cal_coulomb_stress_single_point(
     tau = np.dot(sigma_vector, np.array([d]).T).flatten()
     mean_stress = (stress_enz[:, 0] + stress_enz[:, 3] + stress_enz[:, 5]) / 3
     coulomb_stress = cal_coulomb_stress(
-        norm_stress_drop=sigma, shear_stress_drop=tau, mu=mu
+        norm_stress_drop=sigma, shear_stress_drop=tau, mu_f=mu_f
     )
     coulomb_stress_pore = cal_coulomb_stress_poroelasticity(
         norm_stress_drop=sigma,
         shear_stress_drop=tau,
         mean_stress_drop=mean_stress,
-        mu=mu_pore,
+        mu_f_pore=mu_f_pore,
         B=B_pore,
     )
 
@@ -210,12 +292,13 @@ def cal_coulomb_stress_multi_points_mpi(
         if processes_num < len(group_list[0]):
             raise ValueError(
                 "processes_num is %d, item num in group is %d. \n"
-                "Pleasse check the process num!" % (processes_num, len(group_list[0]))
+                "Pleasse check the process num!" % (
+                    processes_num, len(group_list[0]))
             )
         print("ind_group:%d rank:%d" % (ind_group, rank))
         if ind_group * len(group_list[0]) + rank < N_all:
             paras = group_list[ind_group][rank]
-            cfs_data = cal_coulomb_stress_single_point(*paras)
+            cfs_data = cal_coulomb_stress_plane2single_point(*paras)
             with open(
                 os.path.join(
                     path_output,

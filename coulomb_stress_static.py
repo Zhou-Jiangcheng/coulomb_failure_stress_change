@@ -631,7 +631,7 @@ def cal_coulomb_stress_poroelasticity(
     norm_stress_drop,
     shear_stress_drop,
     mean_stress_drop,
-    mu_f=0.6,
+    mu_f_pore=0.6,
     B=0.75,
 ):
     """
@@ -639,11 +639,11 @@ def cal_coulomb_stress_poroelasticity(
     :param norm_stress_drop:
     :param shear_stress_drop:
     :param mean_stress_drop:
-    :param mu_f: coefficient of friction
+    :param mu_f_pore: coefficient of friction
     :param B: Skempton's coefficient
     :return:
     """
-    coulomb_stress = shear_stress_drop + mu_f * (
+    coulomb_stress = shear_stress_drop + mu_f_pore * (
         norm_stress_drop + B * mean_stress_drop
     )
     return coulomb_stress
