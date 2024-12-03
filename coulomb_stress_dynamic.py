@@ -41,8 +41,9 @@ def cal_stress_vector_ned(stress_enz, n):
 
 def cal_coulomb_stress_grn_point2point(
     path_green,
-    sub_fm,
+    fm_source,
     source_point,
+    fm_field,
     field_point,
     points_green_geo_flatten,
     event_dep_list,
@@ -50,8 +51,6 @@ def cal_coulomb_stress_grn_point2point(
     srate_cfs,
     time_reduction,
     N_T,
-    n_obs,
-    d_obs,
     max_slowness=0.4,
     mu_f=0.4,
     mu_f_pore=0.6,
@@ -63,7 +62,6 @@ def cal_coulomb_stress_grn_point2point(
     receiver_depth = find_nearest_dep(field_point[2], receiver_dep_list)
     event_depth = find_nearest_dep(source_point[2], event_dep_list)
     points_green_geo = points_green_geo_flatten.reshape(2, len(points_green_geo_flatten)//2).T
-
     stress_enz_1source = read_stress_tensor(
         path_green=path_green,
         event_depth=event_depth,
@@ -71,7 +69,7 @@ def cal_coulomb_stress_grn_point2point(
         points_green_geo=points_green_geo,
         source=source_point,
         station=field_point,
-        mt=plane2mt(1, *sub_fm),
+        mt=plane2mt(1, *fm_source),
         interp=interp,
     )  # enz
 
@@ -86,6 +84,7 @@ def cal_coulomb_stress_grn_point2point(
         if ind_const < N_T:
             stress_enz[ind_const:, i_enz] = stress_enz[ind_const, i_enz]
 
+    n_obs, d_obs = plane2nd(*fm_field)
     n = np.array([n_obs.flatten()]).T
     d = np.array([d_obs.flatten()]).T
     sigma_vector = cal_stress_vector_ned(stress_enz, n)  # ned
